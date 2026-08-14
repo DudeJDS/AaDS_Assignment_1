@@ -84,6 +84,10 @@ wildlife_t *create_wildlife(char *fields[]) {
 void free_wildlife(wildlife_t){
 
 }
+//free data, i.e. free fields first
+// free node after
+// node n string cmps are just how many we have done
+// bit by bit cmp btw not byte
 
 // Helper function to allocate appropriate memory for each field
 char *dup_str(const char *s) {
