@@ -10,7 +10,6 @@
 // Define constants
 #define IN_QUOTE 1
 #define OUT_QUOTE 0
-#define NOT_FOUND 'NOTFOUND'
 
 int main(int argc, char *argv[]) {
 
@@ -30,6 +29,8 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+
+    /*------------------------------ Parse Input CSV File - Create List -------------------------------*/
     char line[MAX_RECORD_LEN];
 
     // Discard generic header
@@ -94,7 +95,21 @@ int main(int argc, char *argv[]) {
     }
 
     list_t *list = create_list(head, tail, size_list);
-    // Insert into dictionary
-    // Read queries
-    // Print output
+
+    /*------------------------------ Parse & Search Query/s -------------------------------*/
+    char query[MAX_FIELD_LEN + 1];
+    while (fgets(query, sizeof(query), stdin) != NULL) {
+        query[strcspn(query, "\n")] = '\0';
+
+        int bit_cmps = 0;
+        int str_cmps = 0;
+        int node_cmps = 0;
+        int records_found = 0;
+
+        list_search_by_key(list, query, &bit_cmps, &str_cmps, &node_cmps, &records_found, outFile);
+    }
+
+    fclose(inFile);
+    fclose(outFile);
+    free(list);
 }

@@ -8,7 +8,7 @@
 
 /*----------- Data definitions -----------*/
 typedef struct wildlife wildlife_t;
-typedef struct wildlife {
+struct wildlife {
     char *key;
     char *taxa;
     char *kingdom;
@@ -30,4 +30,5 @@ typedef struct wildlife {
 /*----------- Function definitions -----------*/
 wildlife_t *create_wildlife(char *fields[]);
 
+void free_wildlife(wildlife_t *data);
 #endif
