@@ -7,6 +7,7 @@
 #define MAX_NUM_FIELDS 16
 
 /*----------- Data definitions -----------*/
+typedef struct wildlife wildlife_t;
 typedef struct wildlife {
     char *key;
     char *taxa;
@@ -24,9 +25,7 @@ typedef struct wildlife {
     long double latitude;
     long double longitude;
     char *easy_adress;
-    
-    struct wildlife *next;
-} wildlife_t;
+};
 
 /*----------- Function definitions -----------*/
 wildlife_t *create_wildlife(char *fields[]);

@@ -3,8 +3,9 @@
 #include <assert.h>
 #include <string.h>
 #include "data.h"
-
+#include "list.h"
 #include "bit.h"
+
 
 // Define constants
 #define IN_QUOTE 1
@@ -33,8 +34,9 @@ int main(int argc, char *argv[]) {
 
     // Discard generic header
     fgets(line, sizeof(line), inFile); // Header just sits in this "buffer"
-    wildlife_t *head = NULL;
-    wildlife_t *prev = NULL;
+    node_t *head = NULL;
+    node_t *tail = NULL;
+    int size_list = 0;
     // Process data line by line
     while (fgets(line, MAX_RECORD_LEN, inFile) != NULL) { // First call overwrites our "buffer" and we can handle meaningful input
         // Remove newline 
@@ -78,15 +80,21 @@ int main(int argc, char *argv[]) {
             field_cnt++;
         }
 
-        // Create new wildlife linked list
-        wildlife_t *new_node = create_wildlife(fields);
+        // Create new data for a node
+        wildlife_t *new_data = create_wildlife(fields);
         if (head == NULL) {
-            head = new_node;
+            head = create_node(new_data); //If first node in list make create node and let it be the head
+            tail = head; //As per linked list structure
+            size_list++;
         } else {
-            prev->next = new_node;
-        }
-        prev = new_node;
+            tail->next = create_node(new_data); //If not first node in the list make the prev node now point here
+            tail = tail->next;
+            size_list++;
+        } 
     }
 
-        
+    list_t *list = create_list(head, tail, size_list);
+    // Insert into dictionary
+    // Read queries
+    // Print output
 }
