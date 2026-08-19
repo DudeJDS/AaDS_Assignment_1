@@ -111,5 +111,5 @@ int main(int argc, char *argv[]) {
 
     fclose(inFile);
     fclose(outFile);
-    free(list);
+    free_list(list);
 }
