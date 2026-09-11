@@ -8,7 +8,7 @@
 /*----------- Constant definitions -----------*/
 #define IN_QUOTE 1
 #define OUT_QUOTE 0
-#define MAX_NUM_RECORDS 1000
+#define MAX_NUM_RECORDS 1353
 
 /*----------- Data definitions -----------*/
 typedef struct parsed_records parsed_records_t;

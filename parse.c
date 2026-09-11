@@ -79,7 +79,6 @@ parsed_records_t *parse_csv(FILE *inFile){
 void free_parsed_records(parsed_records_t *parsed_records) {
     if (parsed_records != NULL) {
         free(parsed_records->records);
-        free(parsed_records->num_records);
         free(parsed_records);
     }
 

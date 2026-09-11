@@ -3,7 +3,7 @@ CC = gcc
 CFLAGS = -Wall -g
 
 #Define sets of source files and object files
-SRC = driver.c data.c bit.c list.c
+SRC = driver.c data.c bit.c list.c parse.c
 # OBJ is the same as SRC, just replace .c with .o
 OBJ = $(SRC:.c=.o)
 
