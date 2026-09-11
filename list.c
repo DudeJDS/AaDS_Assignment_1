@@ -3,6 +3,7 @@
 #include "list.h"
 #include "data.h"
 #include "bit.h"
+#include "parse.h"
 
 /*----------- Node - Functions -----------*/
 node_t *create_node(wildlife_t *data){
@@ -56,6 +57,28 @@ void free_list(list_t *list){
     }
     
     free(list);
+}
+
+list_t *list_create_from_records(parsed_records_t *parsed_records) {
+    node_t *head = NULL;
+    node_t *tail = NULL;
+
+    for (int i = 0; i < parsed_records->num_records; i++) {
+        node_t *new_node = create_node(parsed_records->records[i]);
+        if (head == NULL) {
+            head = new_node;
+            tail = new_node;
+        } else {
+            tail->next = new_node;
+            tail = new_node;
+        }
+    }
+    
+    return create_list(head, tail, parsed_records->num_records);
+}
+
+dict_t *dict_build(parsed_records_t *parsed_records) {
+    return list_create_from_records(parsed_records);
 }
 
 void list_search_by_key(list_t *list, char *query, int *bit_cmps, int *str_cmps, int *node_cmps, int *records_found, FILE *outFile) {

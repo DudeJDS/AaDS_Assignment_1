@@ -5,7 +5,7 @@
 #include "data.h"
 #include "list.h"
 #include "bit.h"
-
+#include "parse.h"
 
 // Define constants
 #define IN_QUOTE 1
@@ -29,73 +29,9 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-
-    /*------------------------------ Parse Input CSV File - Create List -------------------------------*/
-    char line[MAX_RECORD_LEN];
-
-    // Discard generic header
-    fgets(line, sizeof(line), inFile); // Header just sits in this "buffer"
-    node_t *head = NULL;
-    node_t *tail = NULL;
-    int size_list = 0;
-    // Process data line by line
-    while (fgets(line, MAX_RECORD_LEN, inFile) != NULL) { // First call overwrites our "buffer" and we can handle meaningful input
-        // Remove newline 
-        line[strcspn(line, "\n")] = '\0';
-
-        char *fields[MAX_NUM_FIELDS]; // Appropriate for entry to createwildlife 
-        int field_cnt = 0;
-        char *p = line;
-
-        // Handle input with quotes
-        while (field_cnt < MAX_NUM_FIELDS) {
-            int quote_status = OUT_QUOTE;
-
-            // Check to see if field starts with ""
-            if (*p == '\"') {
-                quote_status = IN_QUOTE;
-                p++; // Skip quote
-            }
-
-            // Parse inputs  
-            fields[field_cnt] = p;
-            int len_field;
-            if (quote_status == IN_QUOTE) {
-                len_field = strcspn(p, "\"");
-            } else {
-                len_field = strcspn(p, ",");
-            }
-            p += len_field; // Moves p to the comma or quote mark
-
-            // Check for change of field
-            if (*p == ','){
-                *p = '\0'; // Null terminate str in place so fields[field_cnt] has only the one field str before running into \0
-                p++;
-            } else if (*p == '\"') {
-                *p = '\0';
-                p++;
-                if (*p == ',') {
-                    p++; // Incase quote was on final field
-                }
-            }
-            field_cnt++;
-        }
-
-        // Create new data for a node
-        wildlife_t *new_data = create_wildlife(fields);
-        if (head == NULL) {
-            head = create_node(new_data); //If first node in list make create node and let it be the head
-            tail = head; //As per linked list structure
-            size_list++;
-        } else {
-            tail->next = create_node(new_data); //If not first node in the list make the prev node now point here
-            tail = tail->next;
-            size_list++;
-        } 
-    }
-
-    list_t *list = create_list(head, tail, size_list);
-
+    parsed_records_t *parsed_records = parse_csv(inFile);
+    dict_t *dict = dict_build(parsed_records);
+    
     /*------------------------------ Parse & Search Query/s -------------------------------*/
     char query[MAX_FIELD_LEN + 1];
     while (fgets(query, sizeof(query), stdin) != NULL) {
@@ -106,10 +42,11 @@ int main(int argc, char *argv[]) {
         int node_cmps = 0;
         int records_found = 0;
 
-        list_search_by_key(list, query, &bit_cmps, &str_cmps, &node_cmps, &records_found, outFile);
+        list_search_by_key(dict, query, &bit_cmps, &str_cmps, &node_cmps, &records_found, outFile);
     }
 
     fclose(inFile);
     fclose(outFile);
-    free_list(list);
+    free_list(dict);
+    free_parsed_records(parsed_records);
 }
