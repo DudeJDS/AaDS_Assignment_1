@@ -28,7 +28,7 @@ void free_node(node_t *node){
     free(node);
 }
 
-/*----------- List - definitions -----------*/
+/*----------- List - Functions -----------*/
 list_t *create_list(node_t *head, node_t *tail, int size){
     list_t *list = malloc(sizeof(list_t));
     if (list == NULL) {
