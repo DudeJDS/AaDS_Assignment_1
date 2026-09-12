@@ -21,9 +21,8 @@ void free_patricia_leaf(patricia_node_t *leaf){
     if (leaf == NULL) {
         return;
     }
+
     free_wildlife(leaf->data);
-    free(leaf->left);
-    free(leaf->right);
     free(leaf);
 };
 
@@ -32,19 +31,41 @@ void free_patricia_leaf(patricia_node_t *leaf){
 patricia_tree_t *create_patricia_tree() {
     patricia_tree_t *tree = malloc(sizeof(patricia_tree_t));
     assert(tree);
-
-
+    
+    tree->root = NULL;
+    tree->size = 0;
+    return tree;
 };
 
-void free_patricia_tree(){
+void free_patricia_tree_helper(patricia_node_t *node, int parent_bit_index) {
+    if (node == NULL) {
+        return;
+    }
 
+    // Leaf or back loop check
+    if ((node->bit_index == SENTINAL) || (node->bit_index <= parent_bit_index)) {
+        free_patricia_leaf(node);
+        return;
+    }
+
+    free_patricia_tree_helper(node->left, node->bit_index);
+    free_patricia_tree_helper(node->right, node->bit_index);
+    free(node);
+}
+
+void free_patricia_tree(patricia_tree_t *tree) {
+    if (tree == NULL) {
+        return;
+    }
+    free_patricia_tree_helper(tree->root, SENTINAL);
+    free(tree);
 };
 
 int first_diff_bit(char *key1, char *key2){
     int i = 0;
     while (1) {
-        char c1 = key1[0];
-        char c2 = key2[0];
+        char c1 = key1[i];
+        char c2 = key2[i];
 
         for (int bit = 0; bit < BITS_PER_BYTE; bit++) {
             int bit_index = i * BITS_PER_BYTE + bit;
@@ -157,3 +178,67 @@ patricia_node_t *patricia_insert(patricia_node_t *root, wildlife_t *data){
     return root;
 };
 
+dict_t *dict_build(parsed_records_t *parsed_records) {
+    patricia_tree_t *tree = create_patricia_tree();
+    for (int i = 0; i < parsed_records->num_records; i++) {
+        tree->root = patricia_insert(tree->root, parsed_records->records[i]);
+        tree->size++;
+    }
+
+    return tree;
+}
+
+void patricia_search_by_key(patricia_node_t *root, char *query, int *bit_cmps, int *str_cmps, int *node_cmps, int *records_found, FILE *outFile) {
+    fprintf(outFile, "%s\n", query);
+
+    if (root == NULL) {
+        fprintf(outFile, "NOTFOUND\n");
+        fprintf(stdout, "%s --> 0 records found - comparisons: b0 n0 s0\n", query);
+        return;
+    }
+
+    patricia_node_t *curr = root;
+    while(curr->bit_index != SENTINAL) {
+        (*node_cmps)++;
+        if (getBit(query, curr->bit_index) == 0) {
+            curr = curr->left;
+        } else {
+            curr = curr->right;
+        }
+    }
+    (*node_cmps)++; // Including leaf node
+
+    // Verify descent gives us only a candidate - not guaranteed match
+    (*str_cmps)++;
+    if (key_match(query, curr->data->key, bit_cmps)) {
+        (*records_found)++;
+        fprintf(outFile, 
+"--> KEY: %s || Taxa: %s || Kingdom: %s || Phylum: %s || Class: %s || "
+        "Order: %s || Family: %s || Genus: %s || Species: %s || Common_Name: %s || "
+        "Identifcat: %s || Data_Resour: %s || Sighting_Da: %s || latitude: %.5Lf || "
+        "longitude: %.5Lf || EZI_ADD: %s || \n",
+        curr->data->key,
+        curr->data->taxa,
+        curr->data->kingdom,
+        curr->data->phylum,
+        curr->data->class_name,
+        curr->data->order,
+        curr->data->family,
+        curr->data->genus,
+        curr->data->species,
+        curr->data->common_name,
+        curr->data->identification,
+        curr->data->data_resource,
+        curr->data->sighting_data,
+        curr->data->latitude,
+        curr->data->longitude,
+        curr->data->easy_adress);
+    }
+
+    if ((*records_found) == 0) {
+        fprintf(outFile, "NOTFOUND\n");
+    } 
+
+fprintf(stdout, "%s --> %d records found - comparisons: b%d n%d s%d\n", query, *records_found, *bit_cmps, *node_cmps, *str_cmps);
+
+}
