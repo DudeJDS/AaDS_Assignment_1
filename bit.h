@@ -4,6 +4,8 @@
 /* Number of bits in a single character. */
 #define BITS_PER_BYTE 8
 
+int getRawBit(char *arr, unsigned int bitIndex);
+
 int getBit(char *s, unsigned int bitIndex);
 
 int key_match(char *query, char *key, int *bit_cmps);

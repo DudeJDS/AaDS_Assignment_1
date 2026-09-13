@@ -30,23 +30,22 @@ int main(int argc, char *argv[]) {
     }
 
     parsed_records_t *parsed_records = parse_csv(inFile);
-    dict_t *dict = dict_build(parsed_records);
-    
+    dict_t *dict = dict_build(parsed_records);    
     /*------------------------------ Parse & Search Query/s -------------------------------*/
     char query[MAX_FIELD_LEN + 1];
     while (fgets(query, sizeof(query), stdin) != NULL) {
-        query[strcspn(query, "\n")] = '\0';
+        query[strcspn(query, "\r\n")] = '\0';
 
         int bit_cmps = 0;
         int str_cmps = 0;
         int node_cmps = 0;
         int records_found = 0;
 
-        patricia_search_by_key(dict->root, query, &bit_cmps, &str_cmps, &node_cmps, &records_found, outFile);
+        radix_search_by_key(dict->root, query, &bit_cmps, &str_cmps, &node_cmps, &records_found, outFile);
     }
 
     fclose(inFile);
     fclose(outFile);
-    free_patricia_tree(dict);
+    free_radix_tree(dict);
     free_parsed_records(parsed_records);
 }
