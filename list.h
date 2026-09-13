@@ -35,5 +35,4 @@ dict_t *dict_build(parsed_records_t *parsed);
 
 void list_search_by_key(list_t *list, char *query, int *bit_cmps, int *str_cmps, int *node_cmps, int *records_found, FILE *outFile);
 
-int key_match(char *query, char *key, int *bit_cmps);
 #endif

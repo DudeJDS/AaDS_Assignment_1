@@ -4,45 +4,76 @@
 #include <assert.h>
 #include "patricia.h"
 
+/*----------- Entry - Functions -----------*/
+wildlife_entry_t *create_wildlife_entry(wildlife_t *data, wildlife_entry_t *next) {
+    wildlife_entry_t *entry = malloc(sizeof(wildlife_entry_t));
+    assert(entry);
+    entry->data = data;
+    entry->next = next;
+    return entry;
+}
+
+void append_wildlife_entry(entry_list_t *list, wildlife_t *data) {
+    wildlife_entry_t *entry = create_wildlife_entry(data, NULL);
+    list->tail->next = entry;
+    list->tail = entry;
+}
+
+void free_wildlife_entries(wildlife_entry_t *entry) {
+    while (entry != NULL) {
+        wildlife_entry_t *next = entry->next;
+        free_wildlife(entry->data);
+        free(entry);
+        entry = next;
+    }
+}
+
 /*----------- Node - Functions -----------*/
 patricia_node_t *create_leaf(wildlife_t *data){
     patricia_node_t *leaf = malloc(sizeof(patricia_node_t));
     assert(leaf);
 
     leaf->bit_index = SENTINAL;
-    leaf->data = data;
+
+    leaf->entries = malloc(sizeof(entry_list_t));
+    assert(leaf->entries);
+    wildlife_entry_t *entry = create_wildlife_entry(data, NULL);
+    leaf->entries->head = entry;
+    leaf->entries->tail = entry;
+
     leaf->left = leaf;
     leaf->right = leaf;
 
     return leaf;
-};
+}
 
 void free_patricia_leaf(patricia_node_t *leaf){
     if (leaf == NULL) {
         return;
     }
 
-    free_wildlife(leaf->data);
+    free_wildlife_entries(leaf->entries->head);
+    free(leaf->entries);
     free(leaf);
-};
+}
 
 
 /*----------- Tree - Functions -----------*/
 patricia_tree_t *create_patricia_tree() {
     patricia_tree_t *tree = malloc(sizeof(patricia_tree_t));
     assert(tree);
-    
+
     tree->root = NULL;
     tree->size = 0;
     return tree;
-};
+}
 
 void free_patricia_tree_helper(patricia_node_t *node, int parent_bit_index) {
     if (node == NULL) {
         return;
     }
 
-    // Leaf or back loop check
+    // Leaf or back-link check
     if ((node->bit_index == SENTINAL) || (node->bit_index <= parent_bit_index)) {
         free_patricia_leaf(node);
         return;
@@ -59,7 +90,7 @@ void free_patricia_tree(patricia_tree_t *tree) {
     }
     free_patricia_tree_helper(tree->root, SENTINAL);
     free(tree);
-};
+}
 
 int first_diff_bit(char *key1, char *key2){
     int i = 0;
@@ -79,13 +110,13 @@ int first_diff_bit(char *key1, char *key2){
         }
         i++;
     }
-};
+}
 
 patricia_node_t *find_closest_leaf(patricia_node_t *root, char *key){
     // Essentially a "blind" walk through tree
     patricia_node_t *curr = root;
 
-    while(curr->bit_index != SENTINAL) {
+    while (curr->bit_index != SENTINAL) {
         if (getBit(key, curr->bit_index) == 0) {
             curr = curr->left;
         } else {
@@ -93,8 +124,8 @@ patricia_node_t *find_closest_leaf(patricia_node_t *root, char *key){
         }
     }
 
-    return curr; 
-};
+    return curr;
+}
 
 patricia_node_t *patricia_insert(patricia_node_t *root, wildlife_t *data){
     // Case 1: Empty tree case
@@ -104,10 +135,10 @@ patricia_node_t *patricia_insert(patricia_node_t *root, wildlife_t *data){
 
     // Case 2: Tree is a single leaf => cmp directly, no search needed
     if (root->bit_index == SENTINAL) {
-        int diff_bit = first_diff_bit(data->key, root->data->key);
+        int diff_bit = first_diff_bit(data->key, root->entries->head->data->key);
 
-        if (diff_bit == -1) { // Duplicate key
-            free_wildlife(data);
+        if (diff_bit == -1) { // Duplicate key — same leaf, append to preserve order
+            append_wildlife_entry(root->entries, data);
             return root;
         }
 
@@ -115,9 +146,9 @@ patricia_node_t *patricia_insert(patricia_node_t *root, wildlife_t *data){
         patricia_node_t *new_internal = malloc(sizeof(patricia_node_t));
         assert(new_internal);
         new_internal->bit_index = diff_bit;
-        new_internal->data = NULL; // Internal nodes don't hold data - Only leaves do
+        new_internal->entries = NULL; // Internal nodes don't hold data - only leaves do
 
-        if(getBit(data->key, diff_bit) == 0) {
+        if (getBit(data->key, diff_bit) == 0) {
             new_internal->left = new_leaf;
             new_internal->right = root;
         } else {
@@ -130,13 +161,13 @@ patricia_node_t *patricia_insert(patricia_node_t *root, wildlife_t *data){
 
     // Case 3 - General case => 2 or more leaves already exist
     patricia_node_t *closest = find_closest_leaf(root, data->key);
-    int diff_bit = first_diff_bit(data->key, closest->data->key);
+    int diff_bit = first_diff_bit(data->key, closest->entries->head->data->key);
 
-    if (diff_bit == SENTINAL) { // Duplicate
-        free_wildlife(data);
-        return root;
+    if (diff_bit == -1) { // Duplicate — same leaf, append to preserve order
+        append_wildlife_entry(closest->entries, data);
+        return root; // tree structure unchanged
     }
-    
+
     patricia_node_t *new_leaf = create_leaf(data);
 
     // Walk down tree to find where diff_bit belongs
@@ -156,10 +187,11 @@ patricia_node_t *patricia_insert(patricia_node_t *root, wildlife_t *data){
 
     // Splice new_internal b/w parent and curr
     patricia_node_t *new_internal = malloc(sizeof(patricia_node_t));
+    assert(new_internal);
     new_internal->bit_index = diff_bit;
-    new_internal->data = NULL;
+    new_internal->entries = NULL;
 
-    if(getBit(data->key, diff_bit) == 0) { // splice left
+    if (getBit(data->key, diff_bit) == 0) { // splice left
         new_internal->left = new_leaf;
         new_internal->right = curr;
     } else { // splice right
@@ -176,7 +208,7 @@ patricia_node_t *patricia_insert(patricia_node_t *root, wildlife_t *data){
     }
 
     return root;
-};
+}
 
 dict_t *dict_build(parsed_records_t *parsed_records) {
     patricia_tree_t *tree = create_patricia_tree();
@@ -198,7 +230,7 @@ void patricia_search_by_key(patricia_node_t *root, char *query, int *bit_cmps, i
     }
 
     patricia_node_t *curr = root;
-    while(curr->bit_index != SENTINAL) {
+    while (curr->bit_index != SENTINAL) {
         (*node_cmps)++;
         if (getBit(query, curr->bit_index) == 0) {
             curr = curr->left;
@@ -210,35 +242,38 @@ void patricia_search_by_key(patricia_node_t *root, char *query, int *bit_cmps, i
 
     // Verify descent gives us only a candidate - not guaranteed match
     (*str_cmps)++;
-    if (key_match(query, curr->data->key, bit_cmps)) {
-        (*records_found)++;
-        fprintf(outFile, 
-"--> KEY: %s || Taxa: %s || Kingdom: %s || Phylum: %s || Class: %s || "
-        "Order: %s || Family: %s || Genus: %s || Species: %s || Common_Name: %s || "
-        "Identifcat: %s || Data_Resour: %s || Sighting_Da: %s || latitude: %.5Lf || "
-        "longitude: %.5Lf || EZI_ADD: %s || \n",
-        curr->data->key,
-        curr->data->taxa,
-        curr->data->kingdom,
-        curr->data->phylum,
-        curr->data->class_name,
-        curr->data->order,
-        curr->data->family,
-        curr->data->genus,
-        curr->data->species,
-        curr->data->common_name,
-        curr->data->identification,
-        curr->data->data_resource,
-        curr->data->sighting_data,
-        curr->data->latitude,
-        curr->data->longitude,
-        curr->data->easy_adress);
+    if (key_match(query, curr->entries->head->data->key, bit_cmps)) {
+        // Print every record sharing this key, in original insertion order
+        for (wildlife_entry_t *e = curr->entries->head; e != NULL; e = e->next) {
+            (*records_found)++;
+            fprintf(outFile,
+                "--> KEY: %s || Taxa: %s || Kingdom: %s || Phylum: %s || Class: %s || "
+                "Order: %s || Family: %s || Genus: %s || Species: %s || Common_Name: %s || "
+                "Identificat: %s || Data_Resour: %s || Sighting_Da: %s || latitude: %.5Lf || "
+                "longitude: %.5Lf || EZI_ADD: %s || \n",
+                e->data->key,
+                e->data->taxa,
+                e->data->kingdom,
+                e->data->phylum,
+                e->data->class_name,
+                e->data->order,
+                e->data->family,
+                e->data->genus,
+                e->data->species,
+                e->data->common_name,
+                e->data->identification,
+                e->data->data_resource,
+                e->data->sighting_data,
+                e->data->latitude,
+                e->data->longitude,
+                e->data->easy_adress);
+        }
     }
 
     if ((*records_found) == 0) {
         fprintf(outFile, "NOTFOUND\n");
-    } 
+    }
 
-fprintf(stdout, "%s --> %d records found - comparisons: b%d n%d s%d\n", query, *records_found, *bit_cmps, *node_cmps, *str_cmps);
-
+    fprintf(stdout, "%s --> %d records found - comparisons: b%d n%d s%d\n",
+        query, *records_found, *bit_cmps, *node_cmps, *str_cmps);
 }

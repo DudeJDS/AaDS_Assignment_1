@@ -6,4 +6,6 @@
 
 int getBit(char *s, unsigned int bitIndex);
 
+int key_match(char *query, char *key, int *bit_cmps);
+
 #endif

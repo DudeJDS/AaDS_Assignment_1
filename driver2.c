@@ -42,7 +42,7 @@ int main(int argc, char *argv[]) {
         int node_cmps = 0;
         int records_found = 0;
 
-        patricia_search_by_key(dict, query, &bit_cmps, &str_cmps, &node_cmps, &records_found, outFile);
+        patricia_search_by_key(dict->root, query, &bit_cmps, &str_cmps, &node_cmps, &records_found, outFile);
     }
 
     fclose(inFile);
